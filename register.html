@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | PeerCode</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #F8F5FF;
+            padding: 20px;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(93, 63, 211, 0.10);
+        }
+
+        .logo {
+            color: #182230;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .logo span {
+            color: #5D3FD3;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #222;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .description {
+            color: #777;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: #5D3FD3;
+        }
+
+        /* ===== Role selection (Student / Teacher) ===== */
+        .role-options {
+            display: flex;
+            gap: 12px;
+        }
+
+        .role-option {
+            flex: 1;
+        }
+
+        /* sorokkan radio button asal, kita guna kad sebagai ganti */
+        .role-option input {
+            display: none;
+        }
+
+        .role-card {
+            display: block;
+            padding: 14px 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .role-card:hover {
+            border-color: #5D3FD3;
+        }
+
+        /* bila dipilih, kad bertukar ungu */
+        .role-option input:checked + .role-card {
+            border-color: #5D3FD3;
+            background: #F8F5FF;
+            color: #5D3FD3;
+        }
+
+        /* ===== Mesej error ===== */
+        .error-message {
+            display: none;
+            color: #D93025;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .register-button {
+            width: 100%;
+            padding: 14px;
+            background: #5D3FD3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .register-button:hover {
+            background: #4930B0;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .login-link a {
+            color: #5D3FD3;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #777;
+            text-decoration: none;
+        }
+
+        @media (max-width: 480px) {
+            .register-container {
+                padding: 28px 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="register-container">
+
+        <div class="logo">Peer<span>Code:)</span></div>
+        <p class="subtitle">
+            Learn together. Code better.
+        </p>
+
+        <h2>Create your account</h2>
+
+        <p class="description">
+            Join PeerCode and start pair programming today.
+        </p>
+
+        <form id="registerForm">
+
+            <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    placeholder="Enter your full name"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label>I am a</label>
+                <div class="role-options">
+
+                    <div class="role-option">
+                        <input type="radio" id="roleStudent" name="role" value="student" required>
+                        <label for="roleStudent" class="role-card">Student</label>
+                    </div>
+
+                    <div class="role-option">
+                        <input type="radio" id="roleTeacher" name="role" value="teacher">
+                        <label for="roleTeacher" class="role-card">Teacher</label>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="At least 6 characters"
+                    minlength="6"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    placeholder="Re-enter your password"
+                    required
+                >
+                <p class="error-message" id="passwordError">
+                    Passwords do not match.
+                </p>
+            </div>
+
+            <button type="submit" class="register-button">
+                Register
+            </button>
+
+        </form>
+
+        <p class="login-link">
+            Already have an account?
+            <a href="login.html">Login</a>
+        </p>
+
+        <a href="index.html" class="back-link">
+            ← Back to Home
+        </a>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        document.getElementById("registerForm")
+            .addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                // 1. Ambil nilai dari form
+                const fullName = document.getElementById("fullName").value.trim();
+                const email = document.getElementById("email").value.trim().toLowerCase();
+                const role = document.querySelector('input[name="role"]:checked').value;
+                const password = document.getElementById("password").value;
+                const confirmPassword = document.getElementById("confirmPassword").value;
+                const errorMessage = document.getElementById("passwordError");
+                const button = document.querySelector(".register-button");
+
+                // 2. Semak password sama atau tidak
+                if (password !== confirmPassword) {
+                    errorMessage.textContent = "Passwords do not match.";
+                    errorMessage.style.display = "block";
+                    return;
+                }
+
+                errorMessage.style.display = "none";
+                button.disabled = true;
+                button.textContent = "Creating account...";
+
+                // 3. Hantar ke Supabase
+                const { error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            role: role
+                        }
+                    }
+                });
+
+                // 4. Kalau ada error, tunjuk mesej
+                if (error) {
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = "block";
+                    button.disabled = false;
+                    button.textContent = "Register";
+                    return;
+                }
+
+                // 5. Berjaya
+                alert("Account created! Please log in.");
+                window.location.href = "login.html";
+            });
+    </script>
+
+</body>
+</html>

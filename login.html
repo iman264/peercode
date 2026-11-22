@@ -1,0 +1,281 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | PeerCode</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #F8F5FF;
+            padding: 20px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(93, 63, 211, 0.10);
+        }
+
+        .logo {
+            color: #182230;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .logo span {
+            color: #5D3FD3;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #222;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .description {
+            color: #777;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #5D3FD3;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: #5D3FD3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .login-button:hover {
+            background: #4930B0;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .register-link a {
+            color: #5D3FD3;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #777;
+            text-decoration: none;
+        }
+        .error-message {
+    display: none;
+    color: #D93025;
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 28px 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-container">
+
+        <div class="logo">Peer<span>Code:)</span></div>
+
+        <p class="subtitle">
+            Learn together. Code better.
+        </p>
+
+        <h2>Welcome back!</h2>
+
+        <p class="description">
+            Log in to continue your coding journey.
+        </p>
+
+        <form id="loginForm">
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                >
+            </div>
+            <p class="error-message" id="loginError">
+    Incorrect email or password.
+</p>
+
+            <button type="submit" class="login-button">
+                Login
+            </button>
+
+        </form>
+        
+
+        <p class="register-link">
+            Don't have an account?
+            <a href="register.html">Register</a>
+        </p>
+
+        <a href="index.html" class="back-link">
+            ← Back to Home
+        </a>
+
+    </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        document.getElementById("loginForm")
+            .addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                const email = document.getElementById("email").value.trim().toLowerCase();
+                const password = document.getElementById("password").value;
+                const errorMessage = document.getElementById("loginError");
+                const button = document.querySelector(".login-button");
+
+                function showError(text) {
+                    errorMessage.textContent = text;
+                    errorMessage.style.display = "block";
+                    button.disabled = false;
+                    button.textContent = "Login";
+                }
+
+                errorMessage.style.display = "none";
+                button.disabled = true;
+                button.textContent = "Logging in...";
+
+                try {
+                    // 1. Login guna Supabase
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (error) {
+                        if (error.message.toLowerCase().includes("invalid login")) {
+                            showError("Incorrect email or password.");
+                        } else {
+                            showError(error.message);
+                        }
+                        return;
+                    }
+
+                    // 2. Ambil profil (nama dan role)
+                    const { data: profile, error: profileError } = await supabaseClient
+                        .from("profiles")
+                        .select("full_name, role")
+                        .eq("id", data.user.id)
+                        .single();
+
+                    if (profileError || !profile) {
+                        showError("Could not load your profile. Please try again.");
+                        return;
+                    }
+
+                    // 3. Simpan user yang login (supaya page lain masih berfungsi buat masa ini)
+                    localStorage.setItem("peercodeCurrentUser", JSON.stringify({
+                        id: data.user.id,
+                        fullName: profile.full_name,
+                        email: data.user.email,
+                        role: profile.role
+                    }));
+
+                    // 4. Hantar ikut role
+                    if (profile.role === "student") {
+                        window.location.href = "student-dashboard.html";
+                    } else {
+                        window.location.href = "teacher-dashboard.html";
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    showError("Something went wrong: " + err.message);
+                }
+            });
+    </script>
+
+</body>
+</html>

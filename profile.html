@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | PeerCode</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #F8F5FF;
+        }
+
+        /* ===== Bar atas ===== */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 30px;
+            background: white;
+            box-shadow: 0 2px 12px rgba(93, 63, 211, 0.08);
+        }
+
+        .navbar .logo {
+            color: #182230;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar .logo span {
+            color: #5D3FD3;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .nav-button {
+            padding: 9px 18px;
+            background: white;
+            color: #5D3FD3;
+            border: 1px solid #5D3FD3;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .nav-button:hover {
+            background: #5D3FD3;
+            color: white;
+        }
+
+        /* ===== Kandungan ===== */
+        .container {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 8px 30px rgba(93, 63, 211, 0.10);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #222;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .card .card-description {
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        /* Kepala profil */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #5D3FD3;
+            color: white;
+            font-size: 34px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .profile-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 4px;
+        }
+
+        .profile-email {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 8px;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: #F8F5FF;
+            color: #5D3FD3;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        /* Statistik */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(93, 63, 211, 0.10);
+        }
+
+        .stat-number {
+            color: #5D3FD3;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #777;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* Borang */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #5D3FD3;
+        }
+
+        input:disabled {
+            background: #F4F4F6;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        .primary-button {
+            padding: 13px 24px;
+            background: #5D3FD3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .primary-button:hover {
+            background: #4930B0;
+        }
+
+        .primary-button:disabled {
+            background: #A99BE0;
+            cursor: not-allowed;
+        }
+
+        .message {
+            display: none;
+            font-size: 13px;
+            margin-top: 14px;
+        }
+
+        .message.success {
+            color: #1E8E3E;
+        }
+
+        .message.error {
+            color: #D93025;
+        }
+
+        @media (max-width: 600px) {
+            .navbar {
+                padding: 14px 18px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BAR ATAS -->
+    <div class="navbar">
+        <div class="logo">Peer<span>Code:)</span></div>
+
+        <div class="navbar-right">
+            <a class="nav-button" id="dashboardLink" href="login.html">← Dashboard</a>
+            <button class="nav-button" id="logoutButton">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- KEPALA PROFIL -->
+        <div class="card">
+            <div class="profile-header">
+                <div class="avatar" id="avatar"></div>
+                <div>
+                    <div class="profile-name" id="profileName">Loading...</div>
+                    <div class="profile-email" id="profileEmail"></div>
+                    <span class="role-badge" id="profileRole"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATISTIK -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="statCreated">-</div>
+                <div class="stat-label">Rooms created</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statSaved">-</div>
+                <div class="stat-label">Saved projects</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statJoined">-</div>
+                <div class="stat-label">Rooms joined</div>
+            </div>
+        </div>
+
+        <!-- EDIT PROFIL -->
+        <div class="card">
+            <h2>Edit Profile</h2>
+            <p class="card-description">Update your name. Your email and role cannot be changed.</p>
+
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" maxlength="80" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <input type="text" id="role" disabled>
+                    <p class="hint">Your role is set when you register.</p>
+                </div>
+
+                <button type="submit" class="primary-button" id="saveProfileButton">Save Changes</button>
+                <p class="message" id="profileMessage"></p>
+            </form>
+        </div>
+
+        <!-- TUKAR PASSWORD -->
+        <div class="card">
+            <h2>Change Password</h2>
+            <p class="card-description">Use at least 6 characters.</p>
+
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" minlength="6" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmNewPassword">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+
+                <button type="submit" class="primary-button" id="updatePasswordButton">Update Password</button>
+                <p class="message" id="passwordMessage"></p>
+            </form>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        let userId = null;
+        let userEmail = "";
+
+        // Papar mesej kejayaan atau error
+        function showMessage(elementId, text, type) {
+            const box = document.getElementById(elementId);
+            box.textContent = text;
+            box.className = "message " + type;
+            box.style.display = "block";
+        }
+
+        // =====================================================
+        // 1. SEMAK SESI SUPABASE dan AMBIL PROFIL
+        // =====================================================
+        async function start() {
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+
+            if (!sessionData.session) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const user = sessionData.session.user;
+            userId = user.id;
+            userEmail = user.email;
+
+            const { data: profile, error } = await supabaseClient
+                .from("profiles")
+                .select("full_name, role")
+                .eq("id", user.id)
+                .single();
+
+            if (error || !profile) {
+                await supabaseClient.auth.signOut();
+                window.location.href = "login.html";
+                return;
+            }
+
+            document.getElementById("dashboardLink").href = profile.role === "teacher"
+                ? "teacher-dashboard.html"
+                : "student-dashboard.html";
+
+            showInfo(profile);
+            await showStats();
+        }
+
+        function showInfo(profile) {
+            const roleText = profile.role === "teacher" ? "Teacher" : "Student";
+
+            document.getElementById("avatar").textContent = profile.full_name.charAt(0).toUpperCase();
+            document.getElementById("profileName").textContent = profile.full_name;
+            document.getElementById("profileEmail").textContent = userEmail;
+            document.getElementById("profileRole").textContent = roleText;
+
+            document.getElementById("fullName").value = profile.full_name;
+            document.getElementById("email").value = userEmail;
+            document.getElementById("role").value = roleText;
+        }
+
+        // =====================================================
+        // 2. STATISTIK (dari room di Supabase)
+        // =====================================================
+        async function showStats() {
+            // RLS memastikan hanya room yang awak ahli dikembalikan
+            const { data, error } = await supabaseClient
+                .from("rooms")
+                .select("id, owner_id, saved_at");
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            const rooms = data || [];
+
+            const created = rooms.filter(function(r) { return r.owner_id === userId; });
+            const saved = created.filter(function(r) { return r.saved_at; });
+            const joined = rooms.filter(function(r) { return r.owner_id !== userId; });
+
+            document.getElementById("statCreated").textContent = created.length;
+            document.getElementById("statSaved").textContent = saved.length;
+            document.getElementById("statJoined").textContent = joined.length;
+        }
+
+        // =====================================================
+        // 3. LOGOUT
+        // =====================================================
+        document.getElementById("logoutButton").addEventListener("click", async function() {
+            await supabaseClient.auth.signOut();
+            localStorage.removeItem("peercodeCurrentUser");
+            window.location.href = "login.html";
+        });
+
+        // =====================================================
+        // 4. TUKAR NAMA
+        // =====================================================
+        document.getElementById("profileForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const button = document.getElementById("saveProfileButton");
+            const newName = document.getElementById("fullName").value.trim();
+
+            if (newName === "") {
+                showMessage("profileMessage", "Name cannot be empty.", "error");
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = "Saving...";
+
+            const { data, error } = await supabaseClient
+                .from("profiles")
+                .update({ full_name: newName })
+                .eq("id", userId)
+                .select("full_name, role")
+                .single();
+
+            button.disabled = false;
+            button.textContent = "Save Changes";
+
+            if (error || !data) {
+                console.error(error);
+                showMessage("profileMessage", "Could not update your name. Please try again.", "error");
+                return;
+            }
+
+            showInfo(data);
+            showMessage("profileMessage", "Profile updated.", "success");
+        });
+
+        // =====================================================
+        // 5. TUKAR PASSWORD
+        // =====================================================
+        document.getElementById("passwordForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const button = document.getElementById("updatePasswordButton");
+            const current = document.getElementById("currentPassword").value;
+            const newPass = document.getElementById("newPassword").value;
+            const confirmPass = document.getElementById("confirmNewPassword").value;
+
+            if (newPass.length < 6) {
+                showMessage("passwordMessage", "New password must be at least 6 characters.", "error");
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showMessage("passwordMessage", "New passwords do not match.", "error");
+                return;
+            }
+
+            if (newPass === current) {
+                showMessage("passwordMessage", "New password must be different from your current password.", "error");
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = "Updating...";
+
+            // 1. Sahkan password semasa dengan log masuk semula
+            const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+                email: userEmail,
+                password: current
+            });
+
+            if (signInError) {
+                button.disabled = false;
+                button.textContent = "Update Password";
+                showMessage("passwordMessage", "Current password is incorrect.", "error");
+                return;
+            }
+
+            // 2. Tukar kepada password baru
+            const { error: updateError } = await supabaseClient.auth.updateUser({ password: newPass });
+
+            button.disabled = false;
+            button.textContent = "Update Password";
+
+            if (updateError) {
+                console.error(updateError);
+                showMessage("passwordMessage", updateError.message, "error");
+                return;
+            }
+
+            document.getElementById("passwordForm").reset();
+            showMessage("passwordMessage", "Password updated.", "success");
+        });
+
+        // =====================================================
+        // MULA
+        // =====================================================
+        start();
+    </script>
+
+</body>
+</html>

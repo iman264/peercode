@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room | PeerCode</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #F8F5FF;
+            color: #222;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 220px;
+            background: #5D3FD3;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 14px;
+            transition: width 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .sidebar-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            min-height: 36px;
+        }
+
+        .sidebar .logo {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            white-space: nowrap;
+        }
+
+        .sidebar .logo span {
+            color: #D9CCFF;
+        }
+
+        .logo-short {
+            display: none;
+        }
+
+        .collapse-button {
+            background: rgba(255, 255, 255, 0.18);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .collapse-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 10px;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .nav-icon {
+            font-size: 17px;
+            width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* Bila sidebar collapse */
+        .sidebar.collapsed {
+            width: 68px;
+        }
+
+        .sidebar.collapsed .logo-full,
+        .sidebar.collapsed .nav-label {
+            display: none;
+        }
+
+        .sidebar.collapsed .logo-short {
+            display: inline;
+        }
+
+        .sidebar.collapsed .sidebar-top {
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
+            padding: 11px 0;
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* Bar atas: nama room, kod room dan owner */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 24px;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .room-name-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 1px solid #E5DDFB;
+            border-radius: 8px;
+            padding: 4px 12px;
+        }
+
+        .room-name-wrap:focus-within {
+            border-color: #5D3FD3;
+        }
+
+        #roomName {
+            border: none;
+            outline: none;
+            font-size: 15px;
+            font-weight: bold;
+            color: #222;
+            min-width: 200px;
+            background: transparent;
+            padding: 6px 0;
+        }
+
+        .rename-hint {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .room-code-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 1px solid #E5DDFB;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .room-code-box strong {
+            color: #5D3FD3;
+            font-size: 15px;
+            letter-spacing: 2px;
+        }
+
+        .copy-button {
+            padding: 4px 10px;
+            background: white;
+            color: #5D3FD3;
+            border: 1px solid #5D3FD3;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .copy-button:hover {
+            background: #5D3FD3;
+            color: white;
+        }
+
+        .owner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .owner-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .owner-label {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .owner-name {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* ===== WORKSPACE ===== */
+        .workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 16px;
+            padding: 0 24px 20px;
+            min-height: 0;
+        }
+
+        .editor-column {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(93, 63, 211, 0.10);
+        }
+
+        /* Toolbar: Run, Save, Highlight */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: #2B2B2B;
+            padding: 10px 14px;
+        }
+
+        .tool-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .tool-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .run-button {
+            background: #22C55E;
+            color: white;
+        }
+
+        .run-button:hover {
+            background: #16A34A;
+        }
+
+        .save-button {
+            background: #5D3FD3;
+            color: white;
+        }
+
+        .save-button:hover {
+            background: #4930B0;
+        }
+
+        .ghost-button {
+            background: transparent;
+            color: #ddd;
+            border: 1px solid #666;
+        }
+
+        .ghost-button:hover {
+            background: #3a3a3a;
+        }
+
+        .lang-badge {
+            color: #FFD43B;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .save-status {
+            color: #86EFAC;
+            font-size: 13px;
+            margin-left: auto;
+        }
+
+        /* Editor */
+        .editor-wrap {
+            flex: 1;
+            display: flex;
+            background: #1E1E1E;
+            min-height: 220px;
+            overflow: hidden;
+        }
+
+        .gutter {
+            width: 48px;
+            overflow: hidden;
+            flex-shrink: 0;
+            text-align: right;
+            color: #858585;
+            user-select: none;
+        }
+
+        .gutter-inner {
+            padding: 12px 10px 12px 0;
+        }
+
+        .gutter-inner div {
+            height: 22px;
+            line-height: 22px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+        }
+
+        .code-area {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .highlight-layer {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .highlight-inner {
+            position: relative;
+        }
+
+        .highlight-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            border-left: 3px solid;
+        }
+
+        .highlight-label {
+            position: absolute;
+            right: 10px;
+            top: 1px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+
+        #codeEditor {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            background: transparent;
+            color: #F1F1F1;
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 12px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+            line-height: 22px;
+            white-space: pre;
+            overflow: auto;
+            tab-size: 4;
+        }
+
+        /* Output */
+        .output {
+            height: 150px;
+            background: white;
+            padding: 12px 16px;
+            overflow: auto;
+            border-top: 1px solid #E5DDFB;
+        }
+
+        .output-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #5D3FD3;
+            margin-bottom: 6px;
+        }
+
+        #outputText {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            color: #444;
+        }
+
+        #outputText.error {
+            color: #D93025;
+        }
+
+        /* ===== PANEL KANAN ===== */
+        .side {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 8px 30px rgba(93, 63, 211, 0.10);
+        }
+
+        .panel h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #222;
+        }
+
+        .participant {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .participant:last-child {
+            margin-bottom: 0;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .role-tag {
+            margin-left: auto;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: #F8F5FF;
+            color: #5D3FD3;
+        }
+
+        .role-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .role-button {
+            flex: 1;
+            padding: 10px 6px;
+            background: white;
+            color: #5D3FD3;
+            border: 1px solid #5D3FD3;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .role-button:hover {
+            background: #F8F5FF;
+        }
+
+        .role-button.active {
+            background: #5D3FD3;
+            color: white;
+        }
+
+        .role-status {
+            font-size: 12px;
+            color: #777;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        /* ===== Panel Chat / Komen ===== */
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 320px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #EEE8FF;
+        }
+
+        .tab {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #888;
+            cursor: pointer;
+        }
+
+        .tab:hover {
+            color: #5D3FD3;
+        }
+
+        .tab.active {
+            color: #5D3FD3;
+            border-bottom-color: #5D3FD3;
+        }
+
+        .tab-count {
+            background: #F8F5FF;
+            color: #5D3FD3;
+            border-radius: 10px;
+            padding: 1px 7px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+
+        .tab-view {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .tab-view.active {
+            display: flex;
+        }
+
+        /* Chat */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 14px;
+            margin-bottom: 10px;
+            min-height: 0;
+        }
+
+        .chat-message {
+            margin-bottom: 8px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .chat-message strong {
+            margin-right: 4px;
+        }
+
+        .chat-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-form input {
+            flex: 1;
+            min-width: 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .chat-form input:focus {
+            border-color: #5D3FD3;
+        }
+
+        .chat-form button {
+            padding: 10px 14px;
+            background: #5D3FD3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .chat-form button:hover {
+            background: #4930B0;
+        }
+
+        /* Komen teacher */
+        .comment-list {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            margin-bottom: 10px;
+        }
+
+        .comment-empty {
+            font-size: 13px;
+            color: #999;
+            line-height: 1.5;
+        }
+
+        .comment-item {
+            border: 1px solid #EEE8FF;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .comment-item:hover {
+            background: #FBF9FF;
+        }
+
+        .comment-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .comment-line-badge {
+            background: #F8F5FF;
+            color: #5D3FD3;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .comment-time {
+            font-weight: normal;
+            color: #999;
+            font-size: 11px;
+        }
+
+        .comment-delete {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .comment-delete:hover {
+            color: #D93025;
+        }
+
+        .comment-text {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #333;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .comment-form {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .line-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .line-row input {
+            width: 60px;
+            padding: 7px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .comment-form textarea {
+            width: 100%;
+            min-height: 70px;
+            resize: vertical;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .line-row input:focus,
+        .comment-form textarea:focus {
+            border-color: #5D3FD3;
+        }
+
+        .comment-hint {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.4;
+        }
+
+        .comment-error {
+            display: none;
+            color: #D93025;
+            font-size: 12px;
+        }
+
+        .comment-form button {
+            padding: 10px;
+            background: #5D3FD3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .comment-form button:hover {
+            background: #4930B0;
+        }
+
+        .comment-form button:disabled {
+            background: #A99BE0;
+            cursor: not-allowed;
+        }
+
+        /* ===== Skrin kecil ===== */
+        @media (max-width: 900px) {
+            .app {
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .sidebar {
+                width: 68px;
+            }
+
+            .sidebar .logo-full,
+            .sidebar .nav-label {
+                display: none;
+            }
+
+            .sidebar .logo-short {
+                display: inline;
+            }
+
+            .sidebar .sidebar-top {
+                flex-direction: column;
+                gap: 12px;
+                align-items: center;
+            }
+
+            .sidebar .nav-link {
+                justify-content: center;
+                padding: 11px 0;
+            }
+
+            .collapse-button {
+                display: none;
+            }
+
+            .workspace {
+                grid-template-columns: 1fr;
+                padding: 0 14px 20px;
+            }
+
+            .editor-wrap {
+                height: 360px;
+                flex: none;
+            }
+
+            .topbar {
+                padding: 12px 14px;
+                flex-wrap: wrap;
+            }
+
+            #roomName {
+                min-width: 130px;
+            }
+
+            .rename-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <div class="logo">
+                    <span class="logo-full" style="color:white;">Peer<span>Code:)</span></span>
+                    <span class="logo-short">P</span>
+                </div>
+                <button class="collapse-button" id="collapseButton" title="Collapse sidebar">«</button>
+            </div>
+
+            <a class="nav-link" id="dashboardLink" href="login.html">
+                <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
+            </a>
+            <a class="nav-link soon" href="#">
+                <span class="nav-icon">📁</span><span class="nav-label">Projects</span>
+            </a>
+            <a class="nav-link soon" href="#">
+                <span class="nav-icon">👥</span><span class="nav-label">Collaborators</span>
+            </a>
+            <a class="nav-link soon" href="#">
+                <span class="nav-icon">💬</span><span class="nav-label">Messages</span>
+            </a>
+            <a class="nav-link" href="profile.html">
+                <span class="nav-icon">👤</span><span class="nav-label">Profile</span>
+            </a>
+        </aside>
+
+        <!-- ===== MAIN ===== -->
+        <div class="main">
+
+            <!-- Bar atas -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <div class="room-name-wrap">
+                        <input type="text" id="roomName" value="Loading..." maxlength="40" aria-label="Room name">
+                        <span class="rename-hint">✏️ click to rename</span>
+                    </div>
+
+                    <div class="room-code-box">
+                        Room code: <strong id="roomCodeText">------</strong>
+                        <button class="copy-button" id="copyCodeButton" type="button">Copy</button>
+                    </div>
+                </div>
+
+                <div class="owner">
+                    <div class="owner-avatar" id="ownerAvatar"></div>
+                    <div>
+                        <div class="owner-label">Owner</div>
+                        <div class="owner-name" id="ownerName"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workspace">
+
+                <!-- ===== KOLUM EDITOR ===== -->
+                <div class="editor-column">
+
+                    <div class="toolbar">
+                        <button class="tool-button run-button" id="runButton">▶ Run</button>
+                        <button class="tool-button save-button" id="saveButton">💾 Save</button>
+                        <button class="tool-button ghost-button" id="highlightButton" title="Select some code first, then click">🖍 Highlight selection</button>
+                        <button class="tool-button ghost-button" id="clearHighlightButton">Clear my highlights</button>
+                        <span class="lang-badge">Python</span>
+                        <span class="save-status" id="saveStatus"></span>
+                    </div>
+
+                    <div class="editor-wrap">
+                        <div class="gutter" id="gutter">
+                            <div class="gutter-inner" id="gutterInner"></div>
+                        </div>
+
+                        <div class="code-area">
+                            <div class="highlight-layer">
+                                <div class="highlight-inner" id="highlightInner"></div>
+                            </div>
+                            <textarea id="codeEditor" spellcheck="false" wrap="off"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="output">
+                        <div class="output-title">Output</div>
+                        <div id="outputText">No problems have been detected in the workspace.</div>
+                    </div>
+
+                </div>
+
+                <!-- ===== PANEL KANAN ===== -->
+                <div class="side">
+
+                    <div class="panel">
+                        <h3>Participants</h3>
+                        <div id="participantList"></div>
+                    </div>
+
+                    <div class="panel">
+                        <h3>Your role</h3>
+                        <div class="role-buttons">
+                            <button class="role-button" id="driverButton">Be the Driver</button>
+                            <button class="role-button" id="navigatorButton">Be the Navigator</button>
+                        </div>
+                        <p class="role-status" id="roleStatus"></p>
+                    </div>
+
+                    <div class="panel chat-panel">
+
+                        <div class="tabs">
+                            <button class="tab active" id="tabChat" type="button">Live Chat</button>
+                            <button class="tab" id="tabComments" type="button">Teacher Comments <span class="tab-count" id="commentCount">0</span></button>
+                        </div>
+
+                        <!-- Live Chat (pelajar) -->
+                        <div class="tab-view active" id="chatView">
+                            <div class="chat-messages" id="chatMessages"></div>
+                            <form class="chat-form" id="chatForm">
+                                <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off">
+                                <button type="submit">Send</button>
+                            </form>
+                        </div>
+
+                        <!-- Komen teacher -->
+                        <div class="tab-view" id="commentsView">
+                            <div class="comment-list" id="commentList"></div>
+
+                            <form class="comment-form" id="commentForm">
+                                <div class="line-row">
+                                    Line
+                                    <input type="number" id="commentFrom" min="1" value="1">
+                                    to
+                                    <input type="number" id="commentTo" min="1" value="1">
+                                </div>
+                                <p class="comment-hint">Tip: select lines in the code and the line numbers fill in automatically.</p>
+                                <textarea id="commentText" placeholder="Write a comment to help the student..." maxlength="1000"></textarea>
+                                <p class="comment-error" id="commentError"></p>
+                                <button type="submit" id="commentPostButton">Post comment</button>
+                            </form>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.28.1/full/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        // =====================================================
+        // 1. SEMAK SESI SUPABASE
+        // =====================================================
+        async function start() {
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+
+            if (!sessionData.session) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const user = sessionData.session.user;
+
+            const { data: profile, error } = await supabaseClient
+                .from("profiles")
+                .select("full_name, role")
+                .eq("id", user.id)
+                .single();
+
+            if (error || !profile) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            await startRoom(user, profile);
+        }
+
+        start();
+
+        async function startRoom(user, profile) {
+
+            // Teacher sentiasa melihat room sebagai pemerhati (komen sahaja)
+            const teacherView = profile.role === "teacher";
+
+            const dashboardUrl = teacherView
+                ? "teacher-dashboard.html"
+                : "student-dashboard.html";
+
+            // Warna untuk setiap peserta (ikut urutan masuk)
+            const COLOURS = ["#E91E8C", "#00A3C4", "#F5A623", "#22C55E", "#8B5CF6", "#EF4444"];
+
+            // -------------------------------------------------
+            // 2. ELEMEN DALAM PAGE
+            // -------------------------------------------------
+            const roomNameInput = document.getElementById("roomName");
+            const editor = document.getElementById("codeEditor");
+            const saveStatus = document.getElementById("saveStatus");
+            const outputText = document.getElementById("outputText");
+            const saveButton = document.getElementById("saveButton");
+            const runButton = document.getElementById("runButton");
+            const highlightButton = document.getElementById("highlightButton");
+            const clearHighlightButton = document.getElementById("clearHighlightButton");
+            const driverButton = document.getElementById("driverButton");
+            const navigatorButton = document.getElementById("navigatorButton");
+            const roleStatus = document.getElementById("roleStatus");
+            const gutterInner = document.getElementById("gutterInner");
+            const highlightInner = document.getElementById("highlightInner");
+
+            document.getElementById("dashboardLink").href = dashboardUrl;
+
+            function showStatus(message) {
+                saveStatus.textContent = message;
+                setTimeout(function() { saveStatus.textContent = ""; }, 2500);
+            }
+
+            // -------------------------------------------------
+            // 3. AMBIL ROOM IKUT ID DALAM URL
+            // -------------------------------------------------
+            const roomId = new URLSearchParams(window.location.search).get("id");
+
+            if (!roomId) {
+                window.location.href = dashboardUrl;
+                return;
+            }
+
+            const { data: room, error: roomError } = await supabaseClient
+                .from("rooms")
+                .select("*")
+                .eq("id", roomId)
+                .single();
+
+            if (roomError || !room) {
+                alert("Room not found, or you are not a member of this room.");
+                window.location.href = dashboardUrl;
+                return;
+            }
+
+            const isOwner = room.owner_id === user.id;
+
+            roomNameInput.value = room.name;
+            editor.value = room.code || "";
+            document.getElementById("roomCodeText").textContent = room.join_code;
+
+            // -------------------------------------------------
+            // 4. DATA DALAM PAGE
+            // -------------------------------------------------
+            const SHOW_DEMO = true;        // Peserta dan komen demo (tukar false untuk matikan)
+            let myPairRole = "navigator";  // dikira semula sekali semasa mula (lihat pickDefaultRole)
+            let participants = [];
+            let me = null;
+            let demoActive = false;
+            let highlights = [];           // highlight (dikongsi melalui Broadcast)
+            let comments = [];             // komen teacher (dari Supabase)
+            let messages = [];             // mesej chat (dari Supabase)
+            let knownRoles = {};           // role pelajar yang diketahui teacher (dari Broadcast)
+
+            // -------------------------------------------------
+            // 5. SALURAN MASA NYATA (Broadcast + Presence)
+            //    Semua channel.on(...) didaftar di bahagian 15,
+            //    dan subscribe dibuat paling akhir.
+            // -------------------------------------------------
+            const channel = supabaseClient.channel("room:" + room.id, {
+                config: {
+                    presence: { key: user.id },
+                    broadcast: { self: false }
+                }
+            });
+
+            function sendCode() {
+                channel.send({
+                    type: "broadcast",
+                    event: "code-update",
+                    payload: { content: editor.value, senderId: user.id }
+                });
+            }
+
+            // -------------------------------------------------
+            // 6. PESERTA
+            // -------------------------------------------------
+            function assignPairRoles(list) {
+                // Teacher dulu
+                list.forEach(function(p) {
+                    if (p.isTeacher) p.role = "teacher";
+                });
+
+                // Selebihnya pelajar
+                const students = list.filter(function(p) { return !p.isTeacher; });
+                const meStudent = students.find(function(p) { return p.me; });
+
+                if (meStudent) {
+                    meStudent.role = myPairRole;
+                    const others = students.filter(function(p) { return !p.me; });
+                    others.forEach(function(p, i) {
+                        p.role = (myPairRole === "navigator" && i === 0) ? "driver" : "navigator";
+                    });
+                } else {
+                    // Teacher pemerhati: pelajar pertama sebagai driver
+                    students.forEach(function(p, i) {
+                        p.role = i === 0 ? "driver" : "navigator";
+                    });
+
+                    // Guna role yang teacher dengar melalui Broadcast
+                    students.forEach(function(p) {
+                        if (knownRoles[p.id]) p.role = knownRoles[p.id];
+                    });
+                }
+            }
+
+            function buildParticipants(rows) {
+                const list = rows.map(function(row, index) {
+                    const fullName = row.profiles ? row.profiles.full_name : "User";
+                    const profileRole = row.profiles ? row.profiles.role : "student";
+
+                    return {
+                        id: row.user_id,
+                        name: fullName.split(" ")[0],
+                        colour: row.colour || COLOURS[index % COLOURS.length],
+                        memberRole: row.member_role,
+                        isTeacher: profileRole === "teacher" || row.member_role === "teacher",
+                        me: row.user_id === user.id
+                    };
+                });
+
+                // Owner sentiasa di atas
+                list.sort(function(a, b) {
+                    return (b.memberRole === "owner" ? 1 : 0) - (a.memberRole === "owner" ? 1 : 0);
+                });
+
+                // Peserta demo hanya muncul bila awak keseorangan dalam room
+                const hasOtherMember = list.some(function(p) { return !p.me; });
+
+                demoActive = SHOW_DEMO && !hasOtherMember && !teacherView;
+
+                if (demoActive) {
+                    const used = list.map(function(p) { return p.colour; });
+                    const demoColour = COLOURS.find(function(c) {
+                        return used.indexOf(c) === -1;
+                    }) || "#00A3C4";
+
+                    list.push({
+                        id: "demo-nur",
+                        name: "Nur",
+                        colour: demoColour,
+                        memberRole: "student",
+                        isTeacher: false,
+                        me: false,
+                        demo: true
+                    });
+                }
+
+                assignPairRoles(list);
+                return list;
+            }
+
+            function syncDemoHighlight() {
+                highlights = highlights.filter(function(h) { return !h.demo; });
+
+                if (demoActive) {
+                    const demo = participants.find(function(p) { return p.demo; });
+                    highlights.push({
+                        userId: "demo-nur",
+                        name: "Nur",
+                        colour: demo.colour,
+                        start: 2,
+                        end: 2,
+                        demo: true
+                    });
+                }
+            }
+
+            async function loadParticipants() {
+                const { data, error } = await supabaseClient
+                    .from("room_members")
+                    .select("user_id, member_role, colour, profiles(full_name, role)")
+                    .eq("room_id", room.id)
+                    .order("joined_at", { ascending: true });
+
+                if (error) {
+                    console.error(error);
+                    return false;
+                }
+
+                participants = buildParticipants(data || []);
+                me = participants.find(function(p) { return p.me; }) || null;
+                syncDemoHighlight();
+                return true;
+            }
+
+            // Pelajar pertama dalam senarai (owner dahulu, kemudian ikut masa masuk) jadi Driver
+            function pickDefaultRole() {
+                const students = participants.filter(function(p) { return !p.isTeacher && !p.demo; });
+                myPairRole = (students.length > 0 && students[0].me) ? "driver" : "navigator";
+                assignPairRoles(participants);
+            }
+
+            function renderOwner() {
+                const owner = participants.find(function(p) { return p.memberRole === "owner"; });
+                if (!owner) return;
+
+                const avatar = document.getElementById("ownerAvatar");
+                avatar.textContent = owner.name.charAt(0).toUpperCase();
+                avatar.style.background = owner.colour;
+                document.getElementById("ownerName").textContent = owner.name;
+            }
+
+            function renderParticipants() {
+                const list = document.getElementById("participantList");
+                list.innerHTML = "";
+
+                participants.forEach(function(person) {
+                    const row = document.createElement("div");
+                    row.className = "participant";
+
+                    const dot = document.createElement("span");
+                    dot.className = "dot";
+                    dot.style.background = person.colour;
+
+                    const name = document.createElement("span");
+                    name.textContent = person.name + (person.me ? " (you)" : "");
+                    name.style.color = person.colour;
+
+                    const tag = document.createElement("span");
+                    tag.className = "role-tag";
+                    tag.textContent = person.role === "driver" ? "Driver"
+                        : person.role === "navigator" ? "Navigator" : "Teacher";
+
+                    row.appendChild(dot);
+                    row.appendChild(name);
+                    row.appendChild(tag);
+                    list.appendChild(row);
+                });
+            }
+
+            // -------------------------------------------------
+            // 7. DRIVER dan NAVIGATOR
+            // -------------------------------------------------
+            function renderRoles() {
+                if (teacherView) {
+                    document.querySelector(".role-buttons").style.display = "none";
+                    editor.readOnly = true;
+                    roleStatus.textContent = "You are viewing as a Teacher. You can read and run the code and leave comments on specific lines. Only students can edit.";
+                    highlightButton.style.display = "none";
+                    clearHighlightButton.style.display = "none";
+                    saveButton.style.display = "none";
+                } else {
+                    document.querySelector(".role-buttons").style.display = "flex";
+                    driverButton.classList.toggle("active", myPairRole === "driver");
+                    navigatorButton.classList.toggle("active", myPairRole === "navigator");
+
+                    if (myPairRole === "driver") {
+                        editor.readOnly = false;
+                        roleStatus.textContent = "You are the Driver. You write the code.";
+                    } else {
+                        editor.readOnly = true;
+                        roleStatus.textContent = "You are the Navigator. You can read and highlight code, but only the Driver can type.";
+                    }
+                }
+
+                renderParticipants();
+            }
+
+            function setMyRole(newRole) {
+                myPairRole = newRole;
+                assignPairRoles(participants);
+                renderRoles();
+            }
+
+            driverButton.addEventListener("click", function() {
+                setMyRole("driver");
+                channel.send({
+                    type: "broadcast",
+                    event: "role-change",
+                    payload: { role: "driver", senderId: user.id }
+                });
+            });
+
+            navigatorButton.addEventListener("click", function() {
+                setMyRole("navigator");
+                channel.send({
+                    type: "broadcast",
+                    event: "role-change",
+                    payload: { role: "navigator", senderId: user.id }
+                });
+            });
+
+            // -------------------------------------------------
+            // 8. SIDEBAR
+            // -------------------------------------------------
+            document.querySelectorAll(".soon").forEach(function(link) {
+                link.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    alert("This page will be added later.");
+                });
+            });
+
+            const sidebar = document.getElementById("sidebar");
+            const collapseButton = document.getElementById("collapseButton");
+
+            collapseButton.addEventListener("click", function() {
+                sidebar.classList.toggle("collapsed");
+                collapseButton.textContent = sidebar.classList.contains("collapsed") ? "»" : "«";
+            });
+
+            // -------------------------------------------------
+            // 9. KOD ROOM dan RENAME
+            // -------------------------------------------------
+            document.getElementById("copyCodeButton").addEventListener("click", function() {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(room.join_code).then(function() {
+                        showStatus("Code copied ✓");
+                    });
+                } else {
+                    prompt("Copy this room code:", room.join_code);
+                }
+            });
+
+            // Hanya owner boleh rename
+            if (!isOwner) {
+                roomNameInput.readOnly = true;
+                document.querySelector(".rename-hint").textContent = "only the owner can rename";
+            }
+
+            roomNameInput.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") roomNameInput.blur();
+            });
+
+            roomNameInput.addEventListener("blur", async function() {
+                if (!isOwner) return;
+
+                const newName = roomNameInput.value.trim() || "Untitled Room";
+                roomNameInput.value = newName;
+
+                if (newName === room.name) return;
+
+                const { data, error } = await supabaseClient
+                    .from("rooms")
+                    .update({ name: newName })
+                    .eq("id", room.id)
+                    .select();
+
+                if (error || !data || data.length === 0) {
+                    console.error(error);
+                    roomNameInput.value = room.name;
+                    showStatus("Rename failed");
+                    return;
+                }
+
+                room.name = newName;
+                showStatus("Room renamed ✓");
+            });
+
+            // -------------------------------------------------
+            // 10. EDITOR: nombor baris, highlight, scroll
+            // -------------------------------------------------
+            const LINE_HEIGHT = 22;
+            const PADDING_TOP = 12;
+
+            function renderGutter() {
+                const lineCount = Math.max(editor.value.split("\n").length, 20);
+                gutterInner.innerHTML = "";
+                for (let i = 1; i <= lineCount; i++) {
+                    const line = document.createElement("div");
+                    line.textContent = i;
+                    gutterInner.appendChild(line);
+                }
+            }
+
+            // Komen contoh dari teacher (hanya untuk demo, tidak disimpan)
+            function demoComments() {
+                if (!demoActive || teacherView) return [];
+
+                return [{
+                    id: "demo-1",
+                    demo: true,
+                    author_name: "Teacher",
+                    colour: "#F5A623",
+                    line_start: 4,
+                    line_end: 4,
+                    text: "Good start! What do you think happens if you call hello() twice?",
+                    created_at: null
+                }];
+            }
+
+            function allComments() {
+                return demoComments().concat(comments);
+            }
+
+            // Tukar komen kepada bar yang diserlahkan dalam editor
+            function commentHighlights() {
+                return allComments().map(function(c) {
+                    if (c.demo) {
+                        return { name: c.author_name, colour: c.colour, start: c.line_start, end: c.line_end };
+                    }
+
+                    const person = participants.find(function(p) { return p.id === c.author_id; });
+
+                    return {
+                        name: person ? person.name : "Teacher",
+                        colour: person ? person.colour : "#F5A623",
+                        start: c.line_start,
+                        end: c.line_end
+                    };
+                });
+            }
+
+            function renderHighlights() {
+                highlightInner.innerHTML = "";
+
+                highlights.concat(commentHighlights()).forEach(function(item) {
+                    const bar = document.createElement("div");
+                    bar.className = "highlight-bar";
+                    bar.style.top = (PADDING_TOP + (item.start - 1) * LINE_HEIGHT) + "px";
+                    bar.style.height = ((item.end - item.start + 1) * LINE_HEIGHT) + "px";
+                    bar.style.background = item.colour + "33";
+                    bar.style.borderLeftColor = item.colour;
+
+                    const label = document.createElement("span");
+                    label.className = "highlight-label";
+                    label.style.background = item.colour;
+                    label.textContent = item.name;
+
+                    bar.appendChild(label);
+                    highlightInner.appendChild(bar);
+                });
+            }
+
+            function syncScroll() {
+                const offset = "translateY(" + (-editor.scrollTop) + "px)";
+                gutterInner.style.transform = offset;
+                highlightInner.style.transform = offset;
+            }
+
+            editor.addEventListener("scroll", syncScroll);
+
+            // Bila kod berubah: kemas kini nombor baris, dan driver hantar kod kepada rakan
+            let codeTimer = null;
+
+            editor.addEventListener("input", function() {
+                renderGutter();
+
+                // Hanya driver menghantar
+                if (editor.readOnly) return;
+
+                // Throttle: hantar paling kerap setiap 150ms
+                if (codeTimer) return;
+
+                codeTimer = setTimeout(function() {
+                    sendCode();
+                    codeTimer = null;
+                }, 150);
+            });
+
+            editor.addEventListener("keydown", function(event) {
+                if (event.key === "Tab" && !editor.readOnly) {
+                    event.preventDefault();
+                    const start = editor.selectionStart;
+                    const end = editor.selectionEnd;
+                    editor.value = editor.value.substring(0, start) + "    " + editor.value.substring(end);
+                    editor.selectionStart = editor.selectionEnd = start + 4;
+
+                    // Cetuskan event "input" supaya nombor baris dikemas kini dan kod dihantar
+                    editor.dispatchEvent(new Event("input"));
+                }
+            });
+
+            // Baris yang dipilih dalam editor
+            function getSelectedLines() {
+                const text = editor.value;
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+
+                const startLine = text.substring(0, start).split("\n").length;
+                const endPosition = end > start ? end - 1 : end;
+                const endLine = text.substring(0, endPosition).split("\n").length;
+
+                return { start: startLine, end: Math.max(startLine, endLine) };
+            }
+
+            // Highlight: satu highlight bagi setiap orang
+            highlightButton.addEventListener("click", function() {
+                const lines = getSelectedLines();
+                const myColour = me ? me.colour : "#E91E8C";
+                const myName = me ? me.name : "User";
+
+                // Buang highlight lama saya, kemudian tambah yang baru
+                highlights = highlights.filter(function(h) { return h.userId !== user.id; });
+
+                highlights.push({
+                    userId: user.id,
+                    name: myName,
+                    colour: myColour,
+                    start: lines.start,
+                    end: lines.end
+                });
+
+                renderHighlights();
+
+                // Hantar ke rakan
+                channel.send({
+                    type: "broadcast",
+                    event: "highlight-change",
+                    payload: {
+                        senderId: user.id,
+                        name: myName,
+                        colour: myColour,
+                        start: lines.start,
+                        end: lines.end,
+                        action: "add"
+                    }
+                });
+            });
+
+            clearHighlightButton.addEventListener("click", function() {
+                highlights = highlights.filter(function(item) {
+                    return item.userId !== user.id;
+                });
+                renderHighlights();
+
+                // Hantar isyarat clear ke rakan
+                channel.send({
+                    type: "broadcast",
+                    event: "highlight-change",
+                    payload: { senderId: user.id, action: "clear" }
+                });
+            });
+
+            // -------------------------------------------------
+            // 11. RUN (Python) dan SAVE
+            // -------------------------------------------------
+            let pyodide = null;
+            let pyodideLoading = null;
+
+            async function getPython() {
+                if (pyodide) return pyodide;
+
+                if (!pyodideLoading) {
+                    pyodideLoading = loadPyodide();
+                }
+
+                pyodide = await pyodideLoading;
+                return pyodide;
+            }
+
+            // Buang bahagian dalaman Pyodide dari mesej ralat, simpan bahagian kod pelajar
+            function cleanError(message) {
+                const index = message.indexOf('File "<exec>"');
+
+                if (index !== -1) {
+                    return "Traceback (most recent call last):\n  " + message.substring(index);
+                }
+
+                return message;
+            }
+
+            runButton.addEventListener("click", async function() {
+                outputText.classList.remove("error");
+                runButton.disabled = true;
+                outputText.textContent = pyodide
+                    ? "Running..."
+                    : "Loading Python (the first time may take a little while)...";
+
+                let py;
+
+                try {
+                    py = await getPython();
+                } catch (err) {
+                    console.error(err);
+                    pyodideLoading = null;
+                    outputText.classList.add("error");
+                    outputText.textContent = "Could not load Python. Please check your internet connection and try again.";
+                    runButton.disabled = false;
+                    return;
+                }
+
+                const lines = [];
+
+                // Tangkap output dan ralat
+                py.setStdout({ batched: function(text) { lines.push(text); } });
+                py.setStderr({ batched: function(text) { lines.push(text); } });
+
+                // input(): tunjuk kotak untuk menaip jawapan
+                py.setStdin({
+                    stdin: function() {
+                        const answer = prompt("Python is asking for input:");
+
+                        if (answer === null) {
+                            return undefined;   // dibatalkan
+                        }
+
+                        lines.push(answer);     // tunjuk jawapan dalam Output
+                        return answer;
+                    }
+                });
+
+                // Setiap Run bermula dengan ruang kosong (tiada pembolehubah lama)
+                const namespace = py.runPython("dict()");
+
+                try {
+                    await py.runPythonAsync(editor.value, { globals: namespace });
+
+                    outputText.textContent = lines.length > 0
+                        ? lines.join("\n")
+                        : "Code ran successfully with no output. Try adding print(...)";
+                } catch (error) {
+                    outputText.classList.add("error");
+                    const printed = lines.length > 0 ? lines.join("\n") + "\n\n" : "";
+                    outputText.textContent = printed + cleanError(error.message);
+                } finally {
+                    namespace.destroy();
+                    runButton.disabled = false;
+                }
+            });
+
+            saveButton.addEventListener("click", async function() {
+                const name = roomNameInput.value.trim() || "Untitled Room";
+                const code = editor.value;
+                const now = new Date().toISOString();
+
+                saveButton.disabled = true;
+                showStatus("Saving...");
+
+                // 1. Kemas kini room semasa
+                const { data, error } = await supabaseClient
+                    .from("rooms")
+                    .update({ name: name, code: code, saved_at: now })
+                    .eq("id", room.id)
+                    .select();
+
+                if (error || !data || data.length === 0) {
+                    console.error(error);
+                    saveButton.disabled = false;
+                    showStatus("Save failed");
+                    return;
+                }
+
+                // 2. Simpan satu versi baru (rekod lama kekal)
+                const { error: versionError } = await supabaseClient
+                    .from("room_versions")
+                    .insert({
+                        room_id: room.id,
+                        saved_by: user.id,
+                        name: name,
+                        code: code,
+                        language: room.language
+                    });
+
+                if (versionError) {
+                    console.error(versionError);
+                }
+
+                room.name = name;
+                room.code = code;
+                saveButton.disabled = false;
+                showStatus("Saved ✓");
+            });
+
+            // -------------------------------------------------
+            // 12. TAB: LIVE CHAT / TEACHER COMMENTS
+            // -------------------------------------------------
+            const tabChat = document.getElementById("tabChat");
+            const tabComments = document.getElementById("tabComments");
+            const chatView = document.getElementById("chatView");
+            const commentsView = document.getElementById("commentsView");
+
+            function showTab(name) {
+                tabChat.classList.toggle("active", name === "chat");
+                tabComments.classList.toggle("active", name === "comments");
+                chatView.classList.toggle("active", name === "chat");
+                commentsView.classList.toggle("active", name === "comments");
+            }
+
+            tabChat.addEventListener("click", function() { showTab("chat"); });
+            tabComments.addEventListener("click", function() { showTab("comments"); });
+
+            function setupTabs() {
+                if (teacherView) {
+                    // Teacher: tiada live chat, hanya komen
+                    tabChat.style.display = "none";
+                    tabComments.childNodes[0].nodeValue = "Comments ";
+                    document.getElementById("commentForm").style.display = "flex";
+                    showTab("comments");
+                } else {
+                    // Pelajar: Live Chat dan Teacher Comments (baca sahaja)
+                    document.getElementById("commentForm").style.display = "none";
+                    showTab("chat");
+                }
+            }
+
+            // -------------------------------------------------
+            // 13. LIVE CHAT (pelajar)
+            // -------------------------------------------------
+            const chatBox = document.getElementById("chatMessages");
+
+            function demoMessages() {
+                if (!demoActive) return [];
+
+                const owner = participants.find(function(p) { return p.memberRole === "owner"; });
+                const demo = participants.find(function(p) { return p.demo; });
+
+                return [
+                    { name: owner.name, colour: owner.colour, text: "Hi" },
+                    { name: "Nur", colour: demo.colour, text: "Hello" }
+                ];
+            }
+
+            function renderChat() {
+                const items = demoMessages().concat(messages.map(function(msg) {
+                    const person = participants.find(function(p) { return p.id === msg.user_id; });
+                    return {
+                        name: person ? person.name : "User",
+                        colour: person ? person.colour : "#888",
+                        text: msg.text
+                    };
+                }));
+
+                chatBox.innerHTML = "";
+
+                if (items.length === 0) {
+                    const empty = document.createElement("p");
+                    empty.style.color = "#999";
+                    empty.textContent = "No messages yet.";
+                    chatBox.appendChild(empty);
+                    return;
+                }
+
+                items.forEach(function(item) {
+                    const row = document.createElement("div");
+                    row.className = "chat-message";
+
+                    const name = document.createElement("strong");
+                    name.textContent = item.name + ":";
+                    name.style.color = item.colour;
+
+                    const text = document.createElement("span");
+                    text.textContent = item.text;
+
+                    row.appendChild(name);
+                    row.appendChild(text);
+                    chatBox.appendChild(row);
+                });
+
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            async function loadMessages() {
+                const { data, error } = await supabaseClient
+                    .from("messages")
+                    .select("id, user_id, text, created_at")
+                    .eq("room_id", room.id)
+                    .order("created_at", { ascending: true })
+                    .limit(300);
+
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+
+                messages = data || [];
+            }
+
+            document.getElementById("chatForm").addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                const input = document.getElementById("chatInput");
+                const text = input.value.trim();
+                if (text === "") return;
+
+                input.value = "";
+
+                const { data, error } = await supabaseClient
+                    .from("messages")
+                    .insert({ room_id: room.id, user_id: user.id, text: text })
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error(error);
+                    input.value = text;
+                    showStatus("Message not sent");
+                    return;
+                }
+
+                messages.push(data);
+                renderChat();
+            });
+
+            // -------------------------------------------------
+            // 14. KOMEN TEACHER
+            // -------------------------------------------------
+            const commentList = document.getElementById("commentList");
+            const commentCount = document.getElementById("commentCount");
+            const commentForm = document.getElementById("commentForm");
+            const commentFrom = document.getElementById("commentFrom");
+            const commentTo = document.getElementById("commentTo");
+            const commentText = document.getElementById("commentText");
+            const commentError = document.getElementById("commentError");
+            const commentPostButton = document.getElementById("commentPostButton");
+
+            function formatTime(isoString) {
+                if (!isoString) return "";
+
+                return new Date(isoString).toLocaleString("en-GB", {
+                    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+                });
+            }
+
+            async function loadComments() {
+                const { data, error } = await supabaseClient
+                    .from("comments")
+                    .select("id, author_id, line_start, line_end, text, created_at")
+                    .eq("room_id", room.id)
+                    .order("created_at", { ascending: true });
+
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+
+                comments = data || [];
+            }
+
+            function renderComments() {
+                const items = allComments();
+                commentCount.textContent = items.length;
+                commentList.innerHTML = "";
+
+                if (items.length === 0) {
+                    const empty = document.createElement("p");
+                    empty.className = "comment-empty";
+                    empty.textContent = teacherView
+                        ? "No comments yet. Select lines in the code and write a comment below."
+                        : "No teacher comments yet.";
+                    commentList.appendChild(empty);
+                    return;
+                }
+
+                items.forEach(function(c) {
+                    const person = c.demo
+                        ? { name: c.author_name, colour: c.colour }
+                        : participants.find(function(p) { return p.id === c.author_id; });
+
+                    const item = document.createElement("div");
+                    item.className = "comment-item";
+                    item.title = "Click to jump to this line";
+
+                    const head = document.createElement("div");
+                    head.className = "comment-head";
+
+                    const badge = document.createElement("span");
+                    badge.className = "comment-line-badge";
+                    badge.textContent = c.line_start === c.line_end
+                        ? "Line " + c.line_start
+                        : "Lines " + c.line_start + "–" + c.line_end;
+
+                    const author = document.createElement("span");
+                    author.textContent = person ? person.name : "Teacher";
+                    author.style.color = person ? person.colour : "#555";
+
+                    const time = document.createElement("span");
+                    time.className = "comment-time";
+                    time.textContent = formatTime(c.created_at);
+
+                    head.appendChild(badge);
+                    head.appendChild(author);
+                    head.appendChild(time);
+
+                    // Penulis boleh padam komen sendiri
+                    if (!c.demo && c.author_id === user.id) {
+                        const del = document.createElement("button");
+                        del.className = "comment-delete";
+                        del.type = "button";
+                        del.title = "Delete comment";
+                        del.textContent = "×";
+                        del.addEventListener("click", function(event) {
+                            event.stopPropagation();
+                            deleteComment(c.id);
+                        });
+                        head.appendChild(del);
+                    }
+
+                    const body = document.createElement("div");
+                    body.className = "comment-text";
+                    body.textContent = c.text;
+
+                    item.appendChild(head);
+                    item.appendChild(body);
+
+                    // Klik komen: terus ke baris tu dalam editor
+                    item.addEventListener("click", function() {
+                        editor.scrollTop = Math.max(0, (c.line_start - 1) * LINE_HEIGHT - 40);
+                        syncScroll();
+                    });
+
+                    commentList.appendChild(item);
+                });
+            }
+
+            async function deleteComment(id) {
+                const { data, error } = await supabaseClient
+                    .from("comments")
+                    .delete()
+                    .eq("id", id)
+                    .select();
+
+                if (error || !data || data.length === 0) {
+                    console.error(error);
+                    showStatus("Could not delete comment");
+                    return;
+                }
+
+                comments = comments.filter(function(c) { return c.id !== id; });
+                renderComments();
+                renderHighlights();
+            }
+
+            // Bila teacher pilih baris dalam editor, nombor baris terisi sendiri
+            function updateLineInputs() {
+                if (!teacherView) return;
+
+                const lines = getSelectedLines();
+                commentFrom.value = lines.start;
+                commentTo.value = lines.end;
+            }
+
+            editor.addEventListener("mouseup", updateLineInputs);
+            editor.addEventListener("keyup", updateLineInputs);
+
+            function showCommentError(message) {
+                commentError.textContent = message;
+                commentError.style.display = "block";
+            }
+
+            commentForm.addEventListener("submit", async function(event) {
+                event.preventDefault();
+                commentError.style.display = "none";
+
+                const lineCount = editor.value.split("\n").length;
+                const from = parseInt(commentFrom.value, 10);
+                let to = parseInt(commentTo.value, 10);
+                const text = commentText.value.trim();
+
+                if (!from || from < 1 || from > lineCount) {
+                    showCommentError("Line number must be between 1 and " + lineCount + ".");
+                    return;
+                }
+
+                if (!to || to < from) to = from;
+                if (to > lineCount) to = lineCount;
+
+                if (text === "") {
+                    showCommentError("Please write a comment.");
+                    return;
+                }
+
+                commentPostButton.disabled = true;
+                commentPostButton.textContent = "Posting...";
+
+                const { data, error } = await supabaseClient
+                    .from("comments")
+                    .insert({
+                        room_id: room.id,
+                        author_id: user.id,
+                        line_start: from,
+                        line_end: to,
+                        text: text
+                    })
+                    .select()
+                    .single();
+
+                commentPostButton.disabled = false;
+                commentPostButton.textContent = "Post comment";
+
+                if (error) {
+                    console.error(error);
+                    showCommentError("Could not post comment: " + error.message);
+                    return;
+                }
+
+                comments.push(data);
+                commentText.value = "";
+                renderComments();
+                renderHighlights();
+            });
+
+            // -------------------------------------------------
+            // 15. SEMAK KEMAS KINI SETIAP 5 SAAT
+            //     (untuk chat, komen dan peserta; masa nyata
+            //      untuk ini kita buat kemudian)
+            // -------------------------------------------------
+            async function refresh() {
+                const before = JSON.stringify(participants.map(function(p) { return p.id + p.role; }));
+                const beforeMessages = messages.length;
+                const beforeComments = JSON.stringify(comments.map(function(c) { return c.id; }));
+
+                const ok = await loadParticipants();
+                if (!ok) return;
+
+                if (!teacherView) await loadMessages();
+                await loadComments();
+
+                const after = JSON.stringify(participants.map(function(p) { return p.id + p.role; }));
+                const afterComments = JSON.stringify(comments.map(function(c) { return c.id; }));
+
+                if (before !== after) {
+                    renderOwner();
+                    renderRoles();
+                }
+
+                if (messages.length !== beforeMessages || before !== after) {
+                    renderChat();
+                }
+
+                if (beforeComments !== afterComments || before !== after) {
+                    renderComments();
+                    renderHighlights();
+                }
+            }
+
+            // -------------------------------------------------
+            // 16. MASA NYATA: DAFTAR SEMUA PENDENGAR (.on)
+            //     SEBELUM subscribe
+            // -------------------------------------------------
+
+            // Terima kod dari driver (navigator dan teacher)
+            channel.on("broadcast", { event: "code-update" }, function({ payload }) {
+                if (payload.senderId === user.id) return;
+
+                if (editor.readOnly) {
+                    editor.value = payload.content;
+                    renderGutter();
+                    syncScroll();
+                }
+            });
+
+            // Terima tukar role dari rakan
+            channel.on("broadcast", { event: "role-change" }, function({ payload }) {
+                if (payload.senderId === user.id) return;
+
+                if (teacherView) {
+                    // Teacher hanya mengemas kini tag peserta
+                    participants.forEach(function(p) {
+                        if (p.isTeacher) return;
+
+                        const newRole = p.id === payload.senderId
+                            ? payload.role
+                            : (payload.role === "driver" ? "navigator" : "driver");
+
+                        knownRoles[p.id] = newRole;
+                        p.role = newRole;
+                    });
+
+                    renderParticipants();
+                    return;
+                }
+
+                // Kalau rakan jadi driver, saya jadi navigator (dan sebaliknya)
+                setMyRole(payload.role === "driver" ? "navigator" : "driver");
+            });
+
+            // Terima highlight dari rakan
+            channel.on("broadcast", { event: "highlight-change" }, function({ payload }) {
+                if (payload.senderId === user.id) return;
+
+                highlights = highlights.filter(function(h) { return h.userId !== payload.senderId; });
+
+                if (payload.action === "add") {
+                    highlights.push({
+                        userId: payload.senderId,
+                        name: payload.name,
+                        colour: payload.colour,
+                        start: payload.start,
+                        end: payload.end
+                    });
+                }
+
+                renderHighlights();
+            });
+
+            // Bila ada orang baru masuk, driver hantar kod terkini kepada mereka
+            channel.on("presence", { event: "join" }, function({ key }) {
+                if (key === user.id) return;
+                if (!editor.readOnly) sendCode();
+            });
+
+            // -------------------------------------------------
+            // 17. MULA
+            // -------------------------------------------------
+            await loadParticipants();
+
+            if (!me) {
+                alert("You are not a member of this room.");
+                window.location.href = dashboardUrl;
+                return;
+            }
+
+            // Tentukan role asal sekali sahaja (pelajar pertama jadi driver)
+            pickDefaultRole();
+
+            if (!teacherView) await loadMessages();
+            await loadComments();
+
+            setupTabs();
+            renderOwner();
+            renderRoles();
+            renderGutter();
+            renderChat();
+            renderComments();
+            renderHighlights();
+            syncScroll();
+
+            // Subscribe paling akhir, selepas semua .on didaftar
+            channel.subscribe(async function(status) {
+                console.log("channel status:", status);
+
+                if (status === "SUBSCRIBED") {
+                    await channel.track({ userId: user.id, name: me.name });
+                }
+            });
+
+            window.addEventListener("beforeunload", function() {
+                supabaseClient.removeChannel(channel);
+            });
+
+            setInterval(refresh, 5000);
+        }
+    </script>
+
+</body>
+</html>
