@@ -510,6 +510,11 @@
             background: #F8F5FF;
         }
 
+        .role-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .role-button.active {
             background: #5D3FD3;
             color: white;
@@ -899,7 +904,7 @@
                     <div class="toolbar">
                         <button class="tool-button run-button" id="runButton">▶ Run</button>
                         <button class="tool-button save-button" id="saveButton">💾 Save</button>
-                        <button class="tool-button ghost-button" id="highlightButton" title="Select some code first, then click">🖍 Highlight selection</button>
+                        <button class="tool-button ghost-button" id="highlightButton" title="Select lines, then click. Click again on the same lines to remove the highlight.">🖍 Highlight selection</button>
                         <button class="tool-button ghost-button" id="clearHighlightButton">Clear my highlights</button>
                         <span class="lang-badge">Python</span>
                         <span class="save-status" id="saveStatus"></span>
@@ -1028,8 +1033,12 @@
                 ? "teacher-dashboard.html"
                 : "student-dashboard.html";
 
-            // Warna untuk setiap peserta (ikut urutan masuk)
+            // Warna asal jika ahli tiada warna
             const COLOURS = ["#E91E8C", "#00A3C4", "#F5A623", "#22C55E", "#8B5CF6", "#EF4444"];
+
+            function sig(value) {
+                return JSON.stringify(value);
+            }
 
             // -------------------------------------------------
             // 2. ELEMEN DALAM PAGE
@@ -1058,7 +1067,8 @@
             // -------------------------------------------------
             // 3. AMBIL ROOM IKUT ID DALAM URL
             // -------------------------------------------------
-            const roomId = new URLSearchParams(window.location.search).get("id");
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get("id");
 
             if (!roomId) {
                 window.location.href = dashboardUrl;
@@ -1084,21 +1094,18 @@
             document.getElementById("roomCodeText").textContent = room.join_code;
 
             // -------------------------------------------------
-            // 4. DATA DALAM PAGE
+            // 4. DATA DALAM PAGE (semua dari Supabase)
             // -------------------------------------------------
-            const SHOW_DEMO = true;        // Peserta dan komen demo (tukar false untuk matikan)
-            let myPairRole = "navigator";  // dikira semula sekali semasa mula (lihat pickDefaultRole)
             let participants = [];
             let me = null;
-            let demoActive = false;
-            let highlights = [];           // highlight (dikongsi melalui Broadcast)
-            let comments = [];             // komen teacher (dari Supabase)
-            let messages = [];             // mesej chat (dari Supabase)
-            let knownRoles = {};           // role pelajar yang diketahui teacher (dari Broadcast)
+            let highlights = [];           // highlight (tersimpan)
+            let comments = [];             // komen teacher
+            let messages = [];             // mesej chat
+            let lastSavedCode = room.code || "";
 
             // -------------------------------------------------
             // 5. SALURAN MASA NYATA (Broadcast + Presence)
-            //    Semua channel.on(...) didaftar di bahagian 15,
+            //    Semua channel.on(...) didaftar di bahagian 17,
             //    dan subscribe dibuat paling akhir.
             // -------------------------------------------------
             const channel = supabaseClient.channel("room:" + room.id, {
@@ -1116,49 +1123,41 @@
                 });
             }
 
-            // -------------------------------------------------
-            // 6. PESERTA
-            // -------------------------------------------------
-            function assignPairRoles(list) {
-                // Teacher dulu
-                list.forEach(function(p) {
-                    if (p.isTeacher) p.role = "teacher";
+            // Isyarat: ada data berubah, rakan perlu muat semula
+            function notify(kind) {
+                channel.send({
+                    type: "broadcast",
+                    event: "data-changed",
+                    payload: { kind: kind, senderId: user.id }
                 });
-
-                // Selebihnya pelajar
-                const students = list.filter(function(p) { return !p.isTeacher; });
-                const meStudent = students.find(function(p) { return p.me; });
-
-                if (meStudent) {
-                    meStudent.role = myPairRole;
-                    const others = students.filter(function(p) { return !p.me; });
-                    others.forEach(function(p, i) {
-                        p.role = (myPairRole === "navigator" && i === 0) ? "driver" : "navigator";
-                    });
-                } else {
-                    // Teacher pemerhati: pelajar pertama sebagai driver
-                    students.forEach(function(p, i) {
-                        p.role = i === 0 ? "driver" : "navigator";
-                    });
-
-                    // Guna role yang teacher dengar melalui Broadcast
-                    students.forEach(function(p) {
-                        if (knownRoles[p.id]) p.role = knownRoles[p.id];
-                    });
-                }
             }
 
-            function buildParticipants(rows) {
-                const list = rows.map(function(row, index) {
+            // -------------------------------------------------
+            // 6. PESERTA dan ROLE (disimpan dalam pangkalan data)
+            // -------------------------------------------------
+            async function loadParticipants() {
+                const { data, error } = await supabaseClient
+                    .from("room_members")
+                    .select("user_id, member_role, colour, pair_role, profiles(full_name, role)")
+                    .eq("room_id", room.id)
+                    .order("joined_at", { ascending: true });
+
+                if (error) {
+                    console.error(error);
+                    return false;
+                }
+
+                const list = (data || []).map(function(row, index) {
                     const fullName = row.profiles ? row.profiles.full_name : "User";
-                    const profileRole = row.profiles ? row.profiles.role : "student";
+                    const isTeacher = row.profiles ? row.profiles.role === "teacher" : false;
 
                     return {
                         id: row.user_id,
                         name: fullName.split(" ")[0],
                         colour: row.colour || COLOURS[index % COLOURS.length],
                         memberRole: row.member_role,
-                        isTeacher: profileRole === "teacher" || row.member_role === "teacher",
+                        isTeacher: isTeacher,
+                        pairRole: isTeacher ? null : (row.pair_role || "navigator"),
                         me: row.user_id === user.id
                     };
                 });
@@ -1168,71 +1167,15 @@
                     return (b.memberRole === "owner" ? 1 : 0) - (a.memberRole === "owner" ? 1 : 0);
                 });
 
-                // Peserta demo hanya muncul bila awak keseorangan dalam room
-                const hasOtherMember = list.some(function(p) { return !p.me; });
-
-                demoActive = SHOW_DEMO && !hasOtherMember && !teacherView;
-
-                if (demoActive) {
-                    const used = list.map(function(p) { return p.colour; });
-                    const demoColour = COLOURS.find(function(c) {
-                        return used.indexOf(c) === -1;
-                    }) || "#00A3C4";
-
-                    list.push({
-                        id: "demo-nur",
-                        name: "Nur",
-                        colour: demoColour,
-                        memberRole: "student",
-                        isTeacher: false,
-                        me: false,
-                        demo: true
-                    });
-                }
-
-                assignPairRoles(list);
-                return list;
-            }
-
-            function syncDemoHighlight() {
-                highlights = highlights.filter(function(h) { return !h.demo; });
-
-                if (demoActive) {
-                    const demo = participants.find(function(p) { return p.demo; });
-                    highlights.push({
-                        userId: "demo-nur",
-                        name: "Nur",
-                        colour: demo.colour,
-                        start: 2,
-                        end: 2,
-                        demo: true
-                    });
-                }
-            }
-
-            async function loadParticipants() {
-                const { data, error } = await supabaseClient
-                    .from("room_members")
-                    .select("user_id, member_role, colour, profiles(full_name, role)")
-                    .eq("room_id", room.id)
-                    .order("joined_at", { ascending: true });
-
-                if (error) {
-                    console.error(error);
-                    return false;
-                }
-
-                participants = buildParticipants(data || []);
+                participants = list;
                 me = participants.find(function(p) { return p.me; }) || null;
-                syncDemoHighlight();
                 return true;
             }
 
-            // Pelajar pertama dalam senarai (owner dahulu, kemudian ikut masa masuk) jadi Driver
-            function pickDefaultRole() {
-                const students = participants.filter(function(p) { return !p.isTeacher && !p.demo; });
-                myPairRole = (students.length > 0 && students[0].me) ? "driver" : "navigator";
-                assignPairRoles(participants);
+            function hasDriver() {
+                return participants.some(function(p) {
+                    return !p.isTeacher && p.pairRole === "driver";
+                });
             }
 
             function renderOwner() {
@@ -1263,8 +1206,8 @@
 
                     const tag = document.createElement("span");
                     tag.className = "role-tag";
-                    tag.textContent = person.role === "driver" ? "Driver"
-                        : person.role === "navigator" ? "Navigator" : "Teacher";
+                    tag.textContent = person.isTeacher ? "Teacher"
+                        : person.pairRole === "driver" ? "Driver" : "Navigator";
 
                     row.appendChild(dot);
                     row.appendChild(name);
@@ -1285,15 +1228,17 @@
                     clearHighlightButton.style.display = "none";
                     saveButton.style.display = "none";
                 } else {
-                    document.querySelector(".role-buttons").style.display = "flex";
-                    driverButton.classList.toggle("active", myPairRole === "driver");
-                    navigatorButton.classList.toggle("active", myPairRole === "navigator");
+                    const iAmDriver = me.pairRole === "driver";
 
-                    if (myPairRole === "driver") {
-                        editor.readOnly = false;
+                    driverButton.classList.toggle("active", iAmDriver);
+                    navigatorButton.classList.toggle("active", !iAmDriver);
+                    editor.readOnly = !iAmDriver;
+
+                    if (iAmDriver) {
                         roleStatus.textContent = "You are the Driver. You write the code.";
+                    } else if (!hasDriver()) {
+                        roleStatus.textContent = "Nobody is driving. Click 'Be the Driver' to start typing.";
                     } else {
-                        editor.readOnly = true;
                         roleStatus.textContent = "You are the Navigator. You can read and highlight code, but only the Driver can type.";
                     }
                 }
@@ -1301,29 +1246,47 @@
                 renderParticipants();
             }
 
-            function setMyRole(newRole) {
-                myPairRole = newRole;
-                assignPairRoles(participants);
-                renderRoles();
+            let roleBusy = false;
+
+            async function changeRole(kind) {
+                if (roleBusy || !me || me.isTeacher) return;
+
+                roleBusy = true;
+                driverButton.disabled = true;
+                navigatorButton.disabled = true;
+
+                try {
+                    if (kind === "driver") {
+                        if (me.pairRole === "driver") return;
+
+                        const { error } = await supabaseClient.rpc("claim_driver", { p_room: room.id });
+                        if (error) throw error;
+                    } else {
+                        if (me.pairRole !== "driver") return;
+
+                        // Simpan draf terkini sebelum melepaskan peranan driver
+                        sendCode();
+                        await saveDraftNow();
+
+                        const { error } = await supabaseClient.rpc("release_driver", { p_room: room.id });
+                        if (error) throw error;
+                    }
+
+                    await loadParticipants();
+                    renderRoles();
+                    notify("roles");
+                } catch (err) {
+                    console.error(err);
+                    showStatus("Could not change role");
+                } finally {
+                    roleBusy = false;
+                    driverButton.disabled = false;
+                    navigatorButton.disabled = false;
+                }
             }
 
-            driverButton.addEventListener("click", function() {
-                setMyRole("driver");
-                channel.send({
-                    type: "broadcast",
-                    event: "role-change",
-                    payload: { role: "driver", senderId: user.id }
-                });
-            });
-
-            navigatorButton.addEventListener("click", function() {
-                setMyRole("navigator");
-                channel.send({
-                    type: "broadcast",
-                    event: "role-change",
-                    payload: { role: "navigator", senderId: user.id }
-                });
-            });
+            driverButton.addEventListener("click", function() { changeRole("driver"); });
+            navigatorButton.addEventListener("click", function() { changeRole("navigator"); });
 
             // -------------------------------------------------
             // 8. SIDEBAR
@@ -1407,35 +1370,24 @@
                 }
             }
 
-            // Komen contoh dari teacher (hanya untuk demo, tidak disimpan)
-            function demoComments() {
-                if (!demoActive || teacherView) return [];
-
-                return [{
-                    id: "demo-1",
-                    demo: true,
-                    author_name: "Teacher",
-                    colour: "#F5A623",
-                    line_start: 4,
-                    line_end: 4,
-                    text: "Good start! What do you think happens if you call hello() twice?",
-                    created_at: null
-                }];
+            function personFor(userId) {
+                return participants.find(function(p) { return p.id === userId; });
             }
 
-            function allComments() {
-                return demoComments().concat(comments);
-            }
+            // Highlight pelajar dan komen teacher, kedua-duanya tersimpan
+            function allBars() {
+                const fromHighlights = highlights.map(function(h) {
+                    const person = personFor(h.user_id);
+                    return {
+                        name: person ? person.name : "User",
+                        colour: person ? person.colour : "#888888",
+                        start: h.line_start,
+                        end: h.line_end
+                    };
+                });
 
-            // Tukar komen kepada bar yang diserlahkan dalam editor
-            function commentHighlights() {
-                return allComments().map(function(c) {
-                    if (c.demo) {
-                        return { name: c.author_name, colour: c.colour, start: c.line_start, end: c.line_end };
-                    }
-
-                    const person = participants.find(function(p) { return p.id === c.author_id; });
-
+                const fromComments = comments.map(function(c) {
+                    const person = personFor(c.author_id);
                     return {
                         name: person ? person.name : "Teacher",
                         colour: person ? person.colour : "#F5A623",
@@ -1443,12 +1395,14 @@
                         end: c.line_end
                     };
                 });
+
+                return fromHighlights.concat(fromComments);
             }
 
             function renderHighlights() {
                 highlightInner.innerHTML = "";
 
-                highlights.concat(commentHighlights()).forEach(function(item) {
+                allBars().forEach(function(item) {
                     const bar = document.createElement("div");
                     bar.className = "highlight-bar";
                     bar.style.top = (PADDING_TOP + (item.start - 1) * LINE_HEIGHT) + "px";
@@ -1472,16 +1426,57 @@
                 highlightInner.style.transform = offset;
             }
 
+            function scrollToLine(line) {
+                editor.scrollTop = Math.max(0, (line - 1) * LINE_HEIGHT - 40);
+                syncScroll();
+            }
+
             editor.addEventListener("scroll", syncScroll);
 
-            // Bila kod berubah: kemas kini nombor baris, dan driver hantar kod kepada rakan
+            // ----- Simpan draf secara automatik (hanya driver) -----
+            let draftTimer = null;
+
+            async function saveDraftNow() {
+                if (draftTimer) {
+                    clearTimeout(draftTimer);
+                    draftTimer = null;
+                }
+
+                if (editor.readOnly) return;
+
+                const code = editor.value;
+                if (code === lastSavedCode) return;
+
+                const { error } = await supabaseClient
+                    .from("rooms")
+                    .update({ code: code })
+                    .eq("id", room.id);
+
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+
+                lastSavedCode = code;
+                room.code = code;
+                showStatus("Draft saved ✓");
+            }
+
+            function scheduleDraftSave() {
+                if (draftTimer) clearTimeout(draftTimer);
+                draftTimer = setTimeout(saveDraftNow, 1500);
+            }
+
+            // Bila kod berubah: kemas kini nombor baris, driver hantar kod kepada rakan
             let codeTimer = null;
 
             editor.addEventListener("input", function() {
                 renderGutter();
 
-                // Hanya driver menghantar
+                // Hanya driver menghantar dan menyimpan
                 if (editor.readOnly) return;
+
+                scheduleDraftSave();
 
                 // Throttle: hantar paling kerap setiap 150ms
                 if (codeTimer) return;
@@ -1500,7 +1495,7 @@
                     editor.value = editor.value.substring(0, start) + "    " + editor.value.substring(end);
                     editor.selectionStart = editor.selectionEnd = start + 4;
 
-                    // Cetuskan event "input" supaya nombor baris dikemas kini dan kod dihantar
+                    // Cetuskan event "input" supaya nombor baris, hantaran dan draf dikemas kini
                     editor.dispatchEvent(new Event("input"));
                 }
             });
@@ -1518,52 +1513,83 @@
                 return { start: startLine, end: Math.max(startLine, endLine) };
             }
 
-            // Highlight: satu highlight bagi setiap orang
-            highlightButton.addEventListener("click", function() {
+            // ----- Highlight (tersimpan dalam pangkalan data) -----
+            async function loadHighlights() {
+                const { data, error } = await supabaseClient
+                    .from("highlights")
+                    .select("id, user_id, line_start, line_end")
+                    .eq("room_id", room.id)
+                    .order("created_at", { ascending: true });
+
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+
+                highlights = data || [];
+            }
+
+            // Klik pada baris yang sama sekali lagi akan membuang highlight itu
+            highlightButton.addEventListener("click", async function() {
+                if (teacherView) return;
+
                 const lines = getSelectedLines();
-                const myColour = me ? me.colour : "#E91E8C";
-                const myName = me ? me.name : "User";
 
-                // Buang highlight lama saya, kemudian tambah yang baru
-                highlights = highlights.filter(function(h) { return h.userId !== user.id; });
-
-                highlights.push({
-                    userId: user.id,
-                    name: myName,
-                    colour: myColour,
-                    start: lines.start,
-                    end: lines.end
+                const existing = highlights.find(function(h) {
+                    return h.user_id === user.id
+                        && h.line_start === lines.start
+                        && h.line_end === lines.end;
                 });
 
+                let error;
+
+                if (existing) {
+                    const result = await supabaseClient
+                        .from("highlights")
+                        .delete()
+                        .eq("id", existing.id);
+                    error = result.error;
+                } else {
+                    const result = await supabaseClient
+                        .from("highlights")
+                        .insert({
+                            room_id: room.id,
+                            user_id: user.id,
+                            line_start: lines.start,
+                            line_end: lines.end
+                        });
+                    error = result.error;
+                }
+
+                if (error) {
+                    console.error(error);
+                    showStatus("Could not update highlight");
+                    return;
+                }
+
+                await loadHighlights();
                 renderHighlights();
-
-                // Hantar ke rakan
-                channel.send({
-                    type: "broadcast",
-                    event: "highlight-change",
-                    payload: {
-                        senderId: user.id,
-                        name: myName,
-                        colour: myColour,
-                        start: lines.start,
-                        end: lines.end,
-                        action: "add"
-                    }
-                });
+                notify("highlights");
             });
 
-            clearHighlightButton.addEventListener("click", function() {
-                highlights = highlights.filter(function(item) {
-                    return item.userId !== user.id;
-                });
-                renderHighlights();
+            clearHighlightButton.addEventListener("click", async function() {
+                if (teacherView) return;
 
-                // Hantar isyarat clear ke rakan
-                channel.send({
-                    type: "broadcast",
-                    event: "highlight-change",
-                    payload: { senderId: user.id, action: "clear" }
-                });
+                const { error } = await supabaseClient
+                    .from("highlights")
+                    .delete()
+                    .eq("room_id", room.id)
+                    .eq("user_id", user.id);
+
+                if (error) {
+                    console.error(error);
+                    showStatus("Could not clear highlights");
+                    return;
+                }
+
+                await loadHighlights();
+                renderHighlights();
+                notify("highlights");
             });
 
             // -------------------------------------------------
@@ -1692,6 +1718,7 @@
 
                 room.name = name;
                 room.code = code;
+                lastSavedCode = code;
                 saveButton.disabled = false;
                 showStatus("Saved ✓");
             });
@@ -1733,31 +1760,10 @@
             // -------------------------------------------------
             const chatBox = document.getElementById("chatMessages");
 
-            function demoMessages() {
-                if (!demoActive) return [];
-
-                const owner = participants.find(function(p) { return p.memberRole === "owner"; });
-                const demo = participants.find(function(p) { return p.demo; });
-
-                return [
-                    { name: owner.name, colour: owner.colour, text: "Hi" },
-                    { name: "Nur", colour: demo.colour, text: "Hello" }
-                ];
-            }
-
             function renderChat() {
-                const items = demoMessages().concat(messages.map(function(msg) {
-                    const person = participants.find(function(p) { return p.id === msg.user_id; });
-                    return {
-                        name: person ? person.name : "User",
-                        colour: person ? person.colour : "#888",
-                        text: msg.text
-                    };
-                }));
-
                 chatBox.innerHTML = "";
 
-                if (items.length === 0) {
+                if (messages.length === 0) {
                     const empty = document.createElement("p");
                     empty.style.color = "#999";
                     empty.textContent = "No messages yet.";
@@ -1765,16 +1771,18 @@
                     return;
                 }
 
-                items.forEach(function(item) {
+                messages.forEach(function(msg) {
+                    const person = personFor(msg.user_id);
+
                     const row = document.createElement("div");
                     row.className = "chat-message";
 
                     const name = document.createElement("strong");
-                    name.textContent = item.name + ":";
-                    name.style.color = item.colour;
+                    name.textContent = (person ? person.name : "User") + ":";
+                    name.style.color = person ? person.colour : "#888";
 
                     const text = document.createElement("span");
-                    text.textContent = item.text;
+                    text.textContent = msg.text;
 
                     row.appendChild(name);
                     row.appendChild(text);
@@ -1824,6 +1832,7 @@
 
                 messages.push(data);
                 renderChat();
+                notify("chat");
             });
 
             // -------------------------------------------------
@@ -1862,11 +1871,10 @@
             }
 
             function renderComments() {
-                const items = allComments();
-                commentCount.textContent = items.length;
+                commentCount.textContent = comments.length;
                 commentList.innerHTML = "";
 
-                if (items.length === 0) {
+                if (comments.length === 0) {
                     const empty = document.createElement("p");
                     empty.className = "comment-empty";
                     empty.textContent = teacherView
@@ -1876,10 +1884,8 @@
                     return;
                 }
 
-                items.forEach(function(c) {
-                    const person = c.demo
-                        ? { name: c.author_name, colour: c.colour }
-                        : participants.find(function(p) { return p.id === c.author_id; });
+                comments.forEach(function(c) {
+                    const person = personFor(c.author_id);
 
                     const item = document.createElement("div");
                     item.className = "comment-item";
@@ -1907,7 +1913,7 @@
                     head.appendChild(time);
 
                     // Penulis boleh padam komen sendiri
-                    if (!c.demo && c.author_id === user.id) {
+                    if (c.author_id === user.id) {
                         const del = document.createElement("button");
                         del.className = "comment-delete";
                         del.type = "button";
@@ -1929,8 +1935,7 @@
 
                     // Klik komen: terus ke baris tu dalam editor
                     item.addEventListener("click", function() {
-                        editor.scrollTop = Math.max(0, (c.line_start - 1) * LINE_HEIGHT - 40);
-                        syncScroll();
+                        scrollToLine(c.line_start);
                     });
 
                     commentList.appendChild(item);
@@ -1953,6 +1958,7 @@
                 comments = comments.filter(function(c) { return c.id !== id; });
                 renderComments();
                 renderHighlights();
+                notify("comments");
             }
 
             // Bila teacher pilih baris dalam editor, nombor baris terisi sendiri
@@ -2022,44 +2028,62 @@
                 commentText.value = "";
                 renderComments();
                 renderHighlights();
+                notify("comments");
             });
 
             // -------------------------------------------------
-            // 15. SEMAK KEMAS KINI SETIAP 5 SAAT
-            //     (untuk chat, komen dan peserta; masa nyata
-            //      untuk ini kita buat kemudian)
+            // 15. DEGUPAN: tanda pelajar aktif dan kira masa penyertaan
+            // -------------------------------------------------
+            async function sendHeartbeat() {
+                const { error } = await supabaseClient.rpc("heartbeat", {
+                    p_room: room.id,
+                    p_visible: document.visibilityState === "visible"
+                });
+
+                if (error) console.error(error);
+            }
+
+            // -------------------------------------------------
+            // 16. SEMAK KEMAS KINI SETIAP 10 SAAT
+            //     (sandaran, kalau ada isyarat masa nyata yang terlepas)
             // -------------------------------------------------
             async function refresh() {
-                const before = JSON.stringify(participants.map(function(p) { return p.id + p.role; }));
-                const beforeMessages = messages.length;
-                const beforeComments = JSON.stringify(comments.map(function(c) { return c.id; }));
+                const pBefore = sig(participants.map(function(p) { return [p.id, p.pairRole]; }));
+                const mBefore = messages.length;
+                const cBefore = sig(comments.map(function(c) { return c.id; }));
+                const hBefore = sig(highlights.map(function(h) { return h.id; }));
 
                 const ok = await loadParticipants();
-                if (!ok) return;
+                if (!ok || !me) return;
 
                 if (!teacherView) await loadMessages();
                 await loadComments();
+                await loadHighlights();
 
-                const after = JSON.stringify(participants.map(function(p) { return p.id + p.role; }));
-                const afterComments = JSON.stringify(comments.map(function(c) { return c.id; }));
+                const pAfter = sig(participants.map(function(p) { return [p.id, p.pairRole]; }));
+                const cAfter = sig(comments.map(function(c) { return c.id; }));
+                const hAfter = sig(highlights.map(function(h) { return h.id; }));
 
-                if (before !== after) {
+                if (pBefore !== pAfter) {
                     renderOwner();
                     renderRoles();
                 }
 
-                if (messages.length !== beforeMessages || before !== after) {
+                if (messages.length !== mBefore || pBefore !== pAfter) {
                     renderChat();
                 }
 
-                if (beforeComments !== afterComments || before !== after) {
+                if (cBefore !== cAfter || pBefore !== pAfter) {
                     renderComments();
+                }
+
+                if (hBefore !== hAfter || cBefore !== cAfter || pBefore !== pAfter) {
                     renderHighlights();
                 }
             }
 
             // -------------------------------------------------
-            // 16. MASA NYATA: DAFTAR SEMUA PENDENGAR (.on)
+            // 17. MASA NYATA: DAFTAR SEMUA PENDENGAR (.on)
             //     SEBELUM subscribe
             // -------------------------------------------------
 
@@ -2069,63 +2093,51 @@
 
                 if (editor.readOnly) {
                     editor.value = payload.content;
+                    lastSavedCode = payload.content;
                     renderGutter();
                     syncScroll();
                 }
             });
 
-            // Terima tukar role dari rakan
-            channel.on("broadcast", { event: "role-change" }, function({ payload }) {
+            // Terima isyarat bahawa data berubah (role, highlight, chat, komen)
+            channel.on("broadcast", { event: "data-changed" }, async function({ payload }) {
                 if (payload.senderId === user.id) return;
 
-                if (teacherView) {
-                    // Teacher hanya mengemas kini tag peserta
-                    participants.forEach(function(p) {
-                        if (p.isTeacher) return;
-
-                        const newRole = p.id === payload.senderId
-                            ? payload.role
-                            : (payload.role === "driver" ? "navigator" : "driver");
-
-                        knownRoles[p.id] = newRole;
-                        p.role = newRole;
-                    });
-
-                    renderParticipants();
-                    return;
+                if (payload.kind === "roles") {
+                    await loadParticipants();
+                    if (!me) return;
+                    renderOwner();
+                    renderRoles();
+                    renderChat();
+                    renderComments();
+                    renderHighlights();
+                } else if (payload.kind === "highlights") {
+                    await loadHighlights();
+                    renderHighlights();
+                } else if (payload.kind === "chat") {
+                    if (!teacherView) {
+                        await loadMessages();
+                        renderChat();
+                    }
+                } else if (payload.kind === "comments") {
+                    await loadComments();
+                    renderComments();
+                    renderHighlights();
                 }
-
-                // Kalau rakan jadi driver, saya jadi navigator (dan sebaliknya)
-                setMyRole(payload.role === "driver" ? "navigator" : "driver");
-            });
-
-            // Terima highlight dari rakan
-            channel.on("broadcast", { event: "highlight-change" }, function({ payload }) {
-                if (payload.senderId === user.id) return;
-
-                highlights = highlights.filter(function(h) { return h.userId !== payload.senderId; });
-
-                if (payload.action === "add") {
-                    highlights.push({
-                        userId: payload.senderId,
-                        name: payload.name,
-                        colour: payload.colour,
-                        start: payload.start,
-                        end: payload.end
-                    });
-                }
-
-                renderHighlights();
             });
 
             // Bila ada orang baru masuk, driver hantar kod terkini kepada mereka
             channel.on("presence", { event: "join" }, function({ key }) {
                 if (key === user.id) return;
-                if (!editor.readOnly) sendCode();
+
+                if (!editor.readOnly) {
+                    sendCode();
+                    notify("roles");
+                }
             });
 
             // -------------------------------------------------
-            // 17. MULA
+            // 18. MULA
             // -------------------------------------------------
             await loadParticipants();
 
@@ -2135,11 +2147,9 @@
                 return;
             }
 
-            // Tentukan role asal sekali sahaja (pelajar pertama jadi driver)
-            pickDefaultRole();
-
             if (!teacherView) await loadMessages();
             await loadComments();
+            await loadHighlights();
 
             setupTabs();
             renderOwner();
@@ -2150,6 +2160,10 @@
             renderHighlights();
             syncScroll();
 
+            // Dari Recent Comments (teacher dashboard): terus ke baris berkenaan
+            const jumpLine = parseInt(urlParams.get("line"), 10);
+            if (jumpLine) scrollToLine(jumpLine);
+
             // Subscribe paling akhir, selepas semua .on didaftar
             channel.subscribe(async function(status) {
                 console.log("channel status:", status);
@@ -2159,11 +2173,21 @@
                 }
             });
 
+            // Degupan hanya untuk pelajar
+            if (!teacherView) {
+                sendHeartbeat();
+                setInterval(sendHeartbeat, 30000);
+
+                document.addEventListener("visibilitychange", function() {
+                    if (document.visibilityState === "visible") sendHeartbeat();
+                });
+            }
+
             window.addEventListener("beforeunload", function() {
                 supabaseClient.removeChannel(channel);
             });
 
-            setInterval(refresh, 5000);
+            setInterval(refresh, 10000);
         }
     </script>
 
